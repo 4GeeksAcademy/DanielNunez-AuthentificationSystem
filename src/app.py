@@ -1,70 +1,113 @@
-"""
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
-import os
-from flask import Flask, request, jsonify, url_for, send_from_directory
-from flask_migrate import Migrate
-from flask_swagger import swagger
-from flask_cors import CORS
-from api.utils import APIException, generate_sitemap
-from api.models import db
-from api.routes import api
-from api.admin import setup_admin
-from api.commands import setup_commands
+# from flask import Flask, request, jsonify
+# from datetime import timedelta, datetime, timezone
+# from flask_jwt_extended import create_access_token,get_jwt,get_jwt_identity, unset_jwt_cookies, jwt_required, JWTManager
+# from flask_migrate import Migrate
+# from flask_bcrypt import Bcrypt
 
-#from models import Person
+# from api.models import db, User
 
-ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
-static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
-app = Flask(__name__)
-app.url_map.strict_slashes = False
+# app = Flask(__name__)
 
-# database condiguration
-db_url = os.getenv("DATABASE_URL")
-if db_url is not None:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace("postgres://", "postgresql://")
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+# migrate = Migrate(app, db)
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-MIGRATE = Migrate(app, db, compare_type = True)
-db.init_app(app)
-
-# Allow CORS requests to this API
-CORS(app)
-
-# add the admin
-setup_admin(app)
-
-# add the admin
-setup_commands(app)
-
-# Add all endpoints form the API with a "api" prefix
-app.register_blueprint(api, url_prefix='/api')
-
-# Handle/serialize errors like a JSON object
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
-
-# generate sitemap with all your endpoints
-@app.route('/')
-def sitemap():
-    if ENV == "development":
-        return generate_sitemap(app)
-    return send_from_directory(static_file_dir, 'index.html')
-
-# any other endpoint will try to serve it like a static file
-@app.route('/<path:path>', methods=['GET'])
-def serve_any_other_file(path):
-    if not os.path.isfile(os.path.join(static_file_dir, path)):
-        path = 'index.html'
-    response = send_from_directory(static_file_dir, path)
-    response.cache_control.max_age = 0 # avoid cache memory
-    return response
+# app.config['SECRET_KEY'] = 'super-secret'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
 
 
-# this only runs if `$ python src/main.py` is executed
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+# app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+# jwt = JWTManager(app)
+
+# SQLALCHEMY_TRACK_MODIFICATIONS = False
+# SQLALCHEMY_ECHO = True
+
+# bcrypt = Bcrypt(app)
+# db.init_app(app)
+
+# with app.app_context():
+#     db.create_all()
+
+# @app.route('/')
+# def hello_world():
+#     return 'Hello, World!'
+
+# @app.route('/logintoken', methods=['POST'])
+# def create_token():
+#     email = request.json.get("email", None)
+#     password = request.json.get("password", None)
+
+
+#     user = User.query.filter_by(email=email).first()
+
+#     if user is None:
+#         return {"msg": "User not found"}, 401
+    
+#     if not Bcrypt().check_password_hash(user.password, password):
+#         return jsonify({"error": "Unauthorized"}), 401
+    
+    
+#     access_token = create_access_token(identity=email)
+#     response = {"access_token": access_token}
+    
+#     return jsonify({
+#         "email": email,
+#         "access_token": access_token
+#     }), 200
+
+# @app.route('/signup', methods=['POST'])
+# def signup():
+#     name = request.json["name"]
+#     email = request.json["email"]
+#     password = request.json["password"]
+
+#     user_exists = User.query.filter_by(email=email).first() is not None
+
+#     if user_exists:
+#         return jsonify({"error": "User already exists"}), 409
+    
+#     hashed_password = Bcrypt().generate_password_hash(password)
+#     new_user = User(name=name, email=email, password=hashed_password)
+#     db.session.add(new_user)
+#     db.session.commit()
+
+#     return jsonify({
+#         "id": new_user.id,
+#         "email": new_user.email
+#     }), 201
+
+# @app.after_request
+# def refresh_expiring_jwts(response):
+#     try:
+#         exp_timestamp = get_jwt()["exp"]
+#         now = datetime.now(timezone.utc)
+#         target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+#         if target_timestamp > exp_timestamp:
+#             access_token = create_access_token(identity=get_jwt_identity())
+#             data = response.get_json()
+#             if type(data) is not dict:
+#                 data["access_token"] = access_token
+#                 response.data = json.dumps(data)
+#         return response
+#     except (RuntimeError, KeyError):
+#         # Case where there is not a valid JWT. Just return the original respone
+#         return response
+    
+# @app.route('/logout', methods=['POST'])
+# def logout():
+#     response = jsonify({"msg": "logout successful"})
+#     unset_jwt_cookies(response)
+#     return response, 200
+
+# @app.route('/profile/<getemail>')
+# @jwt_required()
+# def my_profile(getemail):
+#     print(getemail)
+#     if not getemail:
+#         return jsonify({"error": "Unauthorized"}), 401
+#     user = User.query.filter_by(email=getemail).first()
+
+#     response_body = {
+#         "id": user.id,
+#         "name": user.name,
+#         "email": user.email
+#     }
+#     return response_body, 200
